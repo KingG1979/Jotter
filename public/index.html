@@ -18,41 +18,98 @@ input{padding:12px;font-size:16px;border-radius:8px;border:0;width:260px}
 <button id="rec">Tap to record</button>
 <div id="msg"></div>
 <script>
+const SILENCE_MS = 5000;      // stop after this much continuous quiet
+const MAX_MS = 180000;        // hard stop after 3 minutes
+const LEVEL = 0.015;          // minimum loudness that can count as speech
+const ABOVE_NOISE = 2;        // speech must be this many times louder than the background
+
 const pass=document.getElementById('pass');
 const btn=document.getElementById('rec');
 const msg=document.getElementById('msg');
-try{pass.value=localStorage.getItem('pp')||''}catch(e){}
-let mr=null,chunks=[];
+let stored='';
+try{stored=localStorage.getItem('pp')||''}catch(e){}
+pass.value=stored;
+
+let mr=null,chunks=[],ctx=null,timer=null,heard=false,discard=false;
+
+function beep(freq){
+  try{
+    const c=ctx&&ctx.state==='running'?ctx:new (window.AudioContext||window.webkitAudioContext)();
+    const o=c.createOscillator(),g=c.createGain();
+    o.frequency.value=freq;g.gain.value=0.15;
+    o.connect(g);g.connect(c.destination);
+    o.start();o.stop(c.currentTime+0.15);
+  }catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}
+}
+
+async function watchSilence(stream){
+  try{
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    try{await ctx.resume()}catch(e){}
+    if(ctx.state!=='running'){msg.textContent='Recording. Tap to stop.';return}
+    const an=ctx.createAnalyser();an.fftSize=1024;
+    ctx.createMediaStreamSource(stream).connect(an);
+    const buf=new Float32Array(an.fftSize);
+    const begun=Date.now();let quietSince=Date.now();
+    let floor=Infinity; // running estimate of background noise; drifts up slowly, drops instantly
+    timer=setInterval(()=>{
+      an.getFloatTimeDomainData(buf);
+      let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];
+      const rms=Math.sqrt(s/buf.length);
+      const now=Date.now();
+      floor=Math.min(rms,floor*1.02);
+      if(rms>Math.max(LEVEL,floor*ABOVE_NOISE)){heard=true;quietSince=now}
+      if(now-quietSince>=SILENCE_MS||now-begun>=MAX_MS){discard=!heard;stop()}
+    },100);
+    msg.textContent='Recording. Stops after 5 seconds of silence.';
+  }catch(e){msg.textContent='Recording. Tap to stop.'}
+}
+
 async function start(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     mr=new MediaRecorder(stream);
-    chunks=[];
+    chunks=[];heard=false;discard=false;
     mr.ondataavailable=e=>chunks.push(e.data);
-    mr.onstop=upload;
+    mr.onstop=finish;
     mr.start();
     btn.classList.add('on');
     btn.textContent='Tap to stop';
-    msg.textContent='';
-  }catch(e){msg.textContent='Microphone blocked: '+e.message}
+    beep(880);
+    watchSilence(stream);
+  }catch(e){msg.textContent='Tap the button to record. ('+e.message+')'}
 }
+
 function stop(){
+  if(timer){clearInterval(timer);timer=null}
+  if(!mr||mr.state!=='recording')return;
   mr.stop();
   mr.stream.getTracks().forEach(t=>t.stop());
   btn.classList.remove('on');
   btn.textContent='Tap to record';
 }
-async function upload(){
+
+async function finish(){
+  if(discard){msg.textContent='Nothing heard, so nothing was saved.';beep(220);return}
   try{localStorage.setItem('pp',pass.value)}catch(e){}
   msg.textContent='Saving...';
   const blob=new Blob(chunks,{type:mr.mimeType});
   try{
     const res=await fetch('/api/upload',{method:'POST',headers:{'x-passphrase':pass.value,'content-type':mr.mimeType},body:blob});
-    msg.textContent=res.ok?'Saved. It arrives Saturday at 16:00.':'Failed: '+res.status;
-  }catch(e){msg.textContent='Network error: '+e.message}
+    if(res.ok){msg.textContent='Saved. It arrives Saturday at 16:00.';beep(1320)}
+    else{
+      msg.textContent=res.status===401?'Wrong passphrase. Nothing was saved.':'Failed: '+res.status;
+      if(res.status===401){try{localStorage.removeItem('pp')}catch(e){}}
+      beep(220);
+    }
+  }catch(e){msg.textContent='Network error: '+e.message;beep(220)}
 }
-btn.onclick=()=>{ (mr&&mr.state==='recording')?stop():start(); };
-if(new URLSearchParams(location.search).get('record')==='1'){msg.textContent='Tap the button to start.'}
+
+btn.onclick=()=>{ (mr&&mr.state==='recording')?(discard=false,stop()):start(); };
+
+// Start recording as soon as the app opens, once a passphrase is stored on this phone.
+if(stored){start()}else{msg.textContent='Enter the passphrase once, then tap to record.'}
 </script>
 </body>
 </html>
