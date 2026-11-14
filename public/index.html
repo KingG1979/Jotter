@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.json">
+<title>Jotter</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:24px}
+#rec{width:200px;height:200px;border-radius:50%;border:0;background:#2a7;color:#fff;font-size:22px}
+#rec.on{background:#d33}
+input{padding:12px;font-size:16px;border-radius:8px;border:0;width:260px}
+#msg{min-height:24px;text-align:center;padding:0 16px}
+</style>
+</head>
+<body>
+<input id="pass" type="password" placeholder="Passphrase">
+<button id="rec">Tap to record</button>
+<div id="msg"></div>
+<script>
+const pass=document.getElementById('pass');
+const btn=document.getElementById('rec');
+const msg=document.getElementById('msg');
+try{pass.value=localStorage.getItem('pp')||''}catch(e){}
+let mr=null,chunks=[];
+async function start(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    mr=new MediaRecorder(stream);
+    chunks=[];
+    mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=upload;
+    mr.start();
+    btn.classList.add('on');
+    btn.textContent='Tap to stop';
+    msg.textContent='';
+  }catch(e){msg.textContent='Microphone blocked: '+e.message}
+}
+function stop(){
+  mr.stop();
+  mr.stream.getTracks().forEach(t=>t.stop());
+  btn.classList.remove('on');
+  btn.textContent='Tap to record';
+}
+async function upload(){
+  try{localStorage.setItem('pp',pass.value)}catch(e){}
+  msg.textContent='Saving...';
+  const blob=new Blob(chunks,{type:mr.mimeType});
+  try{
+    const res=await fetch('/api/upload',{method:'POST',headers:{'x-passphrase':pass.value,'content-type':mr.mimeType},body:blob});
+    msg.textContent=res.ok?'Saved. It arrives Saturday at 16:00.':'Failed: '+res.status;
+  }catch(e){msg.textContent='Network error: '+e.message}
+}
+btn.onclick=()=>{ (mr&&mr.state==='recording')?stop():start(); };
+if(new URLSearchParams(location.search).get('record')==='1'){msg.textContent='Tap the button to start.'}
+</script>
+</body>
+</html>

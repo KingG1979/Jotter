@@ -1,0 +1,9 @@
+{
+  "name": "Jotter",
+  "short_name": "Jotter",
+  "start_url": "/?record=1",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": []
+}
