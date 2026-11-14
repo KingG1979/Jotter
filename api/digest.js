@@ -6,7 +6,7 @@ function berlinHour() {
 }
 
 module.exports = async (req, res) => {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).end();
+  if (!process.env.CRON_SECRET || req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).end();
 
   // Two cron entries (14:00 and 15:00 UTC) cover summer and winter time; only the one landing at 16:xx Berlin sends.
   if (berlinHour() !== 16 && req.query.force !== '1') return res.status(200).json({ skipped: 'not 16:00 in Berlin' });
