@@ -6,6 +6,7 @@ All notable changes to Jotter are recorded here, newest first.
 
 ### Added
 - README and this changelog.
+- CLAUDE.md with project instructions for future Claude sessions.
 
 ## 2026-11-14
 
