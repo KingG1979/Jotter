@@ -1,13 +1,13 @@
 # Jotter: project instructions
 
-Voice reminder app. The user opens it, speaks, and receives all notes from the week as one SMS on Saturday at 16:00 Berlin time. See README.md for the full description.
+Voice reminder app. The user opens it, speaks, and receives all notes from the week as one Telegram message on Saturday at 16:00 Berlin time. See README.md for the full description.
 
 ## Stack and layout
 
 - Static page in `public/`, Vercel serverless functions in `api/` (CommonJS, no framework, no build step).
 - Supabase project `rastfuchs` (ref `ljmkihbqkmuycuqtmquf`, shared with another app). Jotter uses only the `reminders` schema and the private `reminder-audio` bucket. Do not touch the `public` schema or anything else in that project.
 - Vercel project `jotter` in team `kingg1979s-projects`. Live at https://jotter-rust.vercel.app. Every push to `main` deploys to production.
-- OpenAI Whisper for transcription, Twilio for SMS.
+- OpenAI Whisper for transcription. The digest is sent through the Telegram Bot API by the user's own bot (Twilio was dropped: trial accounts cannot send custom text).
 
 ## Rules
 
@@ -27,7 +27,7 @@ Voice reminder app. The user opens it, speaks, and receives all notes from the w
 
 - `node --check api/*.js` for syntax.
 - The recording page can be tested headless with Playwright and Chromium's fake microphone (`--use-fake-device-for-media-stream`, `--use-file-for-fake-audio-capture=<wav>%noloop`). Serve the page from `localhost`, since the microphone is hidden on insecure origins. The fake device has a noise floor of about 0.028 RMS, which is why silence detection is relative to background noise.
-- `/api/digest?force=1` (with the cron secret) bypasses the Berlin hour check. It sends a real SMS, so ask before using it.
+- `/api/digest?force=1` (with the cron secret) bypasses the Berlin hour check. It sends a real message, so ask before using it. The app's "Send digest now" link does the same with the passphrase.
 
 ## Known tool limits
 
@@ -36,7 +36,6 @@ Voice reminder app. The user opens it, speaks, and receives all notes from the w
 
 ## Open items
 
-- `reminders` must be exposed under Supabase Data API settings. Until then, saving fails with 500.
-- No end-to-end test on a real phone yet (record, transcribe, digest SMS).
+- Recording and transcription are confirmed on a real phone. The Telegram digest is not confirmed yet.
 - Hardware button mapping on the user's Android phone.
 - Possible later: separate logins so a second person can use it.

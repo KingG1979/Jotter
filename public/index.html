@@ -111,7 +111,7 @@ async function finish(){
 
 btn.onclick=()=>{ (mr&&mr.state==='recording')?(discard=false,stop()):start(); };
 
-// Sends every unsent note as an SMS right away, instead of waiting for Saturday.
+// Sends every unsent note to Telegram right away, instead of waiting for Saturday.
 document.getElementById('now').onclick=async()=>{
   silent=true;
   if(mr&&mr.state==='recording'){discard=true;stop()}
@@ -119,7 +119,7 @@ document.getElementById('now').onclick=async()=>{
   try{
     const res=await fetch('/api/digest',{method:'POST',headers:{'x-passphrase':pass.value}});
     let j={};try{j=await res.json()}catch(e){}
-    if(res.ok){msg.textContent=j.sent?'Sent '+j.sent+' reminder(s) by SMS.':'No unsent reminders.';beep(1320)}
+    if(res.ok){msg.textContent=j.sent?'Sent '+j.sent+' reminder(s) to Telegram.':'No unsent reminders.';beep(1320)}
     else{msg.textContent=res.status===401?'Wrong passphrase.':(j.error||'Failed: '+res.status);beep(220)}
   }catch(e){msg.textContent='Network error: '+e.message}
 };

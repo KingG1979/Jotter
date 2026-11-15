@@ -4,11 +4,16 @@ All notable changes to Jotter are recorded here, newest first.
 
 ## 2026-11-15
 
+### Changed
+- The digest is now sent as a Telegram message from your own bot instead of an SMS (Short Message Service). Twilio trial accounts cannot send custom text, and Telegram is free.
+- New variables `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The four Twilio variables and `MY_PHONE_NUMBER` are no longer used.
+
 ### Added
+- Setup helper: while `TELEGRAM_CHAT_ID` is unset, "Send digest now" shows the chat ID to use.
 - README and this changelog.
 - CLAUDE.md with project instructions for future Claude sessions.
-- "Send digest now" link in the app. It sends all unsent notes by SMS immediately, protected by the passphrase.
-- The app shows the reason when an SMS fails to send.
+- "Send digest now" link in the app. It sends all unsent notes immediately, protected by the passphrase.
+- The app shows the reason when the digest fails to send.
 
 ## 2026-11-14
 

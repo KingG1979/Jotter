@@ -1,6 +1,6 @@
 # Jotter
 
-Tap a button, speak a reminder, and get every note from the week as one SMS (Short Message Service) text on Saturday at 16:00 Berlin time.
+Tap a button, speak a reminder, and get every note from the week as one Telegram message on Saturday at 16:00 Berlin time.
 
 Live at https://jotter-rust.vercel.app
 
@@ -9,7 +9,7 @@ Live at https://jotter-rust.vercel.app
 1. Opening the app starts recording straight away (after the passphrase has been saved once on that phone).
 2. Recording stops by itself after 5 seconds of silence. A beep confirms the save.
 3. The audio is stored in Supabase and transcribed with OpenAI Whisper.
-4. Every Saturday at 16:00 Berlin time, a scheduled job sends all unsent notes as one text message via Twilio and marks them as sent.
+4. Every Saturday at 16:00 Berlin time, a scheduled job sends all unsent notes as one Telegram message from your own bot and marks them as sent.
 
 The "Send digest now" link under the button sends all unsent notes immediately instead of waiting for Saturday.
 
@@ -22,7 +22,7 @@ If nothing is said, nothing is saved. A single note is limited to 3 minutes. Tap
 | `public/index.html` | Recording page: auto-start, silence detection, upload |
 | `public/manifest.json` | Lets the page be installed to the home screen as a PWA (Progressive Web App) |
 | `api/upload.js` | Checks the passphrase, stores the audio, transcribes it, saves the note |
-| `api/digest.js` | Weekly digest: collects unsent notes and sends the SMS |
+| `api/digest.js` | Weekly digest: collects unsent notes and sends the Telegram message |
 | `vercel.json` | Cron schedule for the digest |
 
 ## Setup
@@ -43,11 +43,17 @@ Set these in the project settings and redeploy afterwards. Never commit them.
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `OPENAI_API_KEY` | OpenAI API (Application Programming Interface) key, used for Whisper |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID (String Identifier) |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_FROM_NUMBER` | Twilio sender number, international format |
-| `MY_PHONE_NUMBER` | Number that receives the digest, international format |
+| `TELEGRAM_BOT_TOKEN` | Token of your Telegram bot, from BotFather |
+| `TELEGRAM_CHAT_ID` | Your Telegram chat ID. The app tells you the value, see below |
 | `CRON_SECRET` | Long random string. Vercel sends it to the digest job automatically |
+
+### Telegram
+
+1. In Telegram, open a chat with `@BotFather`, send `/newbot`, and follow the prompts. BotFather replies with a bot token.
+2. Put the token into Vercel as `TELEGRAM_BOT_TOKEN` and redeploy.
+3. Open your new bot in Telegram and send it `/start`.
+4. In the app, tap "Send digest now". While `TELEGRAM_CHAT_ID` is unset, the app shows the value to use.
+5. Put that value into Vercel as `TELEGRAM_CHAT_ID` and redeploy.
 
 ### Phone
 
@@ -67,7 +73,7 @@ The Vercel project `jotter` is linked to this repository. Every push to `main` d
 
 - The phone must be unlocked. A web app cannot record from the lock screen.
 - One recipient only. Separate logins for a second user are not built yet.
-- Whisper and Twilio charge small per-use fees.
-- Recording, transcription and the SMS digest have not yet been confirmed end to end on a real phone.
+- Whisper charges a small per-use fee. Telegram is free.
+- Recording and transcription are confirmed on a real phone. The Telegram digest is not confirmed yet.
 
 See [CHANGELOG.md](CHANGELOG.md) for the history.
