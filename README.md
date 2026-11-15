@@ -11,6 +11,8 @@ Live at https://jotter-rust.vercel.app
 3. The audio is stored in Supabase and transcribed with OpenAI Whisper.
 4. Every Saturday at 16:00 Berlin time, a scheduled job sends all unsent notes as one text message via Twilio and marks them as sent.
 
+The "Send digest now" link under the button sends all unsent notes immediately instead of waiting for Saturday.
+
 If nothing is said, nothing is saved. A single note is limited to 3 minutes. Tapping the button stops a recording manually.
 
 ## Project structure

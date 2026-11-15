@@ -11,12 +11,14 @@ body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#eee;displa
 #rec.on{background:#d33}
 input{padding:12px;font-size:16px;border-radius:8px;border:0;width:260px}
 #msg{min-height:24px;text-align:center;padding:0 16px}
+#now{background:none;border:0;color:#888;font-size:14px;text-decoration:underline;padding:12px}
 </style>
 </head>
 <body>
 <input id="pass" type="password" placeholder="Passphrase">
 <button id="rec">Tap to record</button>
 <div id="msg"></div>
+<button id="now">Send digest now</button>
 <script>
 const SILENCE_MS = 5000;      // stop after this much continuous quiet
 const MAX_MS = 180000;        // hard stop after 3 minutes
@@ -30,7 +32,7 @@ let stored='';
 try{stored=localStorage.getItem('pp')||''}catch(e){}
 pass.value=stored;
 
-let mr=null,chunks=[],ctx=null,timer=null,heard=false,discard=false;
+let mr=null,chunks=[],ctx=null,timer=null,heard=false,discard=false,silent=false;
 
 function beep(freq){
   try{
@@ -70,7 +72,7 @@ async function start(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     mr=new MediaRecorder(stream);
-    chunks=[];heard=false;discard=false;
+    chunks=[];heard=false;discard=false;silent=false;
     mr.ondataavailable=e=>chunks.push(e.data);
     mr.onstop=finish;
     mr.start();
@@ -91,6 +93,7 @@ function stop(){
 }
 
 async function finish(){
+  if(silent){silent=false;return}
   if(discard){msg.textContent='Nothing heard, so nothing was saved.';beep(220);return}
   try{localStorage.setItem('pp',pass.value)}catch(e){}
   msg.textContent='Saving...';
@@ -107,6 +110,19 @@ async function finish(){
 }
 
 btn.onclick=()=>{ (mr&&mr.state==='recording')?(discard=false,stop()):start(); };
+
+// Sends every unsent note as an SMS right away, instead of waiting for Saturday.
+document.getElementById('now').onclick=async()=>{
+  silent=true;
+  if(mr&&mr.state==='recording'){discard=true;stop()}
+  msg.textContent='Sending digest...';
+  try{
+    const res=await fetch('/api/digest',{method:'POST',headers:{'x-passphrase':pass.value}});
+    let j={};try{j=await res.json()}catch(e){}
+    if(res.ok){msg.textContent=j.sent?'Sent '+j.sent+' reminder(s) by SMS.':'No unsent reminders.';beep(1320)}
+    else{msg.textContent=res.status===401?'Wrong passphrase.':(j.error||'Failed: '+res.status);beep(220)}
+  }catch(e){msg.textContent='Network error: '+e.message}
+};
 
 // Start recording as soon as the app opens, once a passphrase is stored on this phone.
 if(stored){start()}else{msg.textContent='Enter the passphrase once, then tap to record.'}

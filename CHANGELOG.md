@@ -7,6 +7,8 @@ All notable changes to Jotter are recorded here, newest first.
 ### Added
 - README and this changelog.
 - CLAUDE.md with project instructions for future Claude sessions.
+- "Send digest now" link in the app. It sends all unsent notes by SMS immediately, protected by the passphrase.
+- The app shows the reason when an SMS fails to send.
 
 ## 2026-11-14
 
